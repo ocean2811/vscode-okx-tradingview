@@ -13,11 +13,11 @@
 
 ## 安装方法
 
-~~### 从 VSCode 插件市场安装~~
-~~1. 打开 VSCode~~
-~~2. 点击左侧扩展按钮或按 `Ctrl+Shift+X`~~
-~~3. 搜索 "OKX Tradingview"~~
-~~4. 点击安装~~
+### ~~从 VSCode 插件市场安装~~
+1. ~~打开 VSCode~~
+2. ~~点击左侧扩展按钮或按 `Ctrl+Shift+X`~~
+3. ~~搜索 "OKX Tradingview"~~
+4. ~~点击安装~~
 
 ### 手动安装
 1. 下载本项目的 `.vsix` 文件
