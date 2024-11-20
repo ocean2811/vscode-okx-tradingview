@@ -2,7 +2,8 @@
     "name": "vscode-okx-tradingview",
     "displayName": "OKX Tradingview",
     "description": "Display OKX trading pairs price in VSCode status bar",
-    "version": "0.0.2",
+    "version": "0.0.4",
+    "publisher": "ocean",
     "engines": {
         "vscode": "^1.75.0"
     },
