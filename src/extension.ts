@@ -254,7 +254,7 @@ function updateStatusBarItem(pair: string) {
     }
 
     const priceStr = data.price;
-    item.text = `${pair}: $${priceStr}`;
+    item.text = `${pair}: ${priceStr}`;
     item.tooltip = `Last updated: ${new Date(data.timestamp).toLocaleTimeString()}`;
 }
 
