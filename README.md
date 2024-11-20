@@ -34,7 +34,8 @@
 {
     "okxTradingview.pairs": ["BTC-USDT-SWAP", "ETH-USDT-SWAP"],  // 要监控的交易对
     "okxTradingview.displayMode": "row",                // 显示模式：row（横向排列）或 carousel（轮播）
-    "okxTradingview.carouselInterval": 5000             // 轮播间隔时间（毫秒）
+    "okxTradingview.carouselInterval": 5000,             // 轮播间隔时间（毫秒）
+    "okxTradingview.abbreviation": "disable"             // 是否启用缩写显示
 }
 ```
 
@@ -59,6 +60,17 @@
    - 默认值：5000
    - 单位：毫秒
    - 说明：轮播模式下切换交易对的时间间隔
+
+4. `okxTradingview.abbreviation`
+   - 类型：字符串
+   - 可选值：`"enable"` 或 `"disable"`
+   - 默认值：`"disable"`
+   - 说明：是否缩写交易对的名称，启用时插件会按照以下规则自动生成缩写:
+     - 默认使用交易对中第一个连字符前的部分
+       - 示例：ETH-USDT → ETH
+     - 当存在相同首段的交易对时，以"-SWAP"结尾的交易对将添加"-S"后缀
+       - 示例：ETH-USDT-SWAP → ETH-S   ETH-USDT → ETH
+     - 如果无法解决重复问题，将回退到显示完整交易对名称
 
 ## 使用说明
 
@@ -101,6 +113,9 @@
 - 支持实时价格显示
 - 支持多交易对监控
 - 支持横向排列和轮播两种显示模式
+
+### 0.0.2
+- 增加了缩写模式
 
 ## 贡献指南
 

@@ -21,6 +21,7 @@ let statusBarStartButton: vscode.StatusBarItem;
 let isMonitoring = false;
 let statusBarItems: Map<string, vscode.StatusBarItem> = new Map();
 let priceData: Map<string, PriceData> = new Map();
+let abbrLib: Map<string, string> = new Map();
 let ws: WebSocket | null = null;
 let carouselIntervalId: NodeJS.Timeout | null = null;
 let reconnectAttempts = 0;
@@ -80,9 +81,63 @@ function stopMonitoring() {
 async function initializeExtension() {
     clearExistingSetup();
     const config = getConfig();
+    abbrLib = makeAbbrLib(config);
     await setupStatusBarItems(config);
     await refreshPrices();
     setupWebSocket();
+}
+
+function makeAbbrLib(config: { pairs: string[], abbreviation: string }): Map<string, string> {
+    // 创建一个新的Map而不是修改全局变量
+    let resultAbbrLib = new Map<string, string>();
+
+    // 提前返回空Map如果abbreviation不是enable
+    if (config.abbreviation !== 'enable') {
+        return resultAbbrLib;
+    }
+
+    // 创建初始缩写Map
+    const createInitialAbbrs = (pairs: string[]): Map<string, string> => {
+        return new Map(
+            pairs.map(pair => [pair, pair.split('-')[0]])
+        );
+    };
+
+    // 检查缩写是否有重复
+    const hasUniqueAbbrs = (abbrMap: Map<string, string>): boolean => {
+        const abbrs = [...abbrMap.values()];
+        return new Set(abbrs).size === abbrs.length;
+    };
+
+    // 第一次尝试：使用简单的首段缩写
+    const firstAttemptAbbrs = createInitialAbbrs(config.pairs);
+    if (hasUniqueAbbrs(firstAttemptAbbrs)) {
+        return firstAttemptAbbrs;
+    }
+
+    // 第二次尝试：为SWAP结尾的添加-S后缀
+    const secondAttemptAbbrs = new Map(
+        [...firstAttemptAbbrs].map(([pair, abbr]) => {
+            const hasConflict = [...firstAttemptAbbrs].some(
+                ([otherPair, otherAbbr]) =>
+                    otherPair !== pair &&
+                    otherAbbr === abbr
+            );
+
+            if (hasConflict && pair.endsWith('-SWAP')) {
+                return [pair, `${abbr}-S`];
+            }
+            return [pair, abbr];
+        })
+    );
+
+    if (hasUniqueAbbrs(secondAttemptAbbrs)) {
+        return secondAttemptAbbrs;
+    }
+
+    // 如果所有尝试都失败，记录错误并返回空Map
+    console.error('Error cannot abbreviate:', config.pairs);
+    return resultAbbrLib;
 }
 
 function getConfig() {
@@ -90,7 +145,8 @@ function getConfig() {
     return {
         pairs: config.get<string[]>('pairs', ["BTC-USDT-SWAP", "ETH-USDT-SWAP"]),
         displayMode: config.get<'row' | 'carousel'>('displayMode', 'row'),
-        carouselInterval: config.get<number>('carouselInterval', 5000)
+        carouselInterval: config.get<number>('carouselInterval', 5000),
+        abbreviation: config.get<'enable' | 'disable'>('abbreviation', 'disable')
     };
 }
 
@@ -131,6 +187,11 @@ async function setupStatusBarItems(config: { pairs: string[], displayMode: strin
 }
 
 function createStatusBarItem(pair: string): vscode.StatusBarItem {
+    const abbrPair = abbrLib.get(pair)
+    if (abbrPair) {
+        pair = abbrPair;
+    }
+
     const item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right);
     item.text = `$(sync~spin) ${pair}`;
     item.show();
@@ -185,6 +246,11 @@ function updateStatusBarItem(pair: string) {
     const item = statusBarItems.get(pair);
     if (!data || !item) {
         return;
+    }
+
+    const abbrPair = abbrLib.get(pair)
+    if (abbrPair) {
+        pair = abbrPair;
     }
 
     const priceStr = data.price;

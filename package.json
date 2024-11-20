@@ -2,7 +2,7 @@
     "name": "vscode-okx-tradingview",
     "displayName": "OKX Tradingview",
     "description": "Display OKX trading pairs price in VSCode status bar",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "engines": {
         "vscode": "^1.75.0"
     },
@@ -52,7 +52,16 @@
                     "type": "number",
                     "default": 5000,
                     "description": "Interval (ms) between carousel rotations"
-                }
+                },
+                "okxTradingview.abbreviation": {
+                    "type": "string",
+                    "enum": [
+                        "enable",
+                        "disable"
+                    ],
+                    "default": "disable",
+                    "description": "abbreviation pairs"
+            }
             }
         }
     },
