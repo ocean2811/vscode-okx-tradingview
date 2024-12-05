@@ -22,6 +22,7 @@ let isMonitoring = false;
 let statusBarItems: Map<string, vscode.StatusBarItem> = new Map();
 let priceData: Map<string, PriceData> = new Map();
 let abbrLib: Map<string, string> = new Map();
+let priceTickSz: Map<string, number> = new Map();
 let ws: WebSocket | null = null;
 let carouselIntervalId: NodeJS.Timeout | null = null;
 let reconnectAttempts = 0;
@@ -82,9 +83,53 @@ async function initializeExtension() {
     clearExistingSetup();
     const config = getConfig();
     abbrLib = makeAbbrLib(config);
+    await getPricePrecision(config);
     await setupStatusBarItems(config);
     await refreshPrices();
     setupWebSocket();
+}
+
+interface OkxInstrument {
+    instId: string;
+    tickSz: string;
+    instType: string;
+}
+
+/**
+ * Get price precision for specified instruments from OKX
+ * @param instIds Array of instrument IDs to check
+ * @returns Map of instId to price precision (number of decimal places)
+ */
+async function getPricePrecision(config: { pairs: string[] }) {
+    const baseUrl = 'https://www.okx.com';
+    const endpoint = '/api/v5/public/instruments';
+    const result = new Map<string, number>();
+
+    try {
+        // Process instruments in batches to handle possible rate limits
+        for (const instId of config.pairs) {
+            const instType = instId.endsWith('-SWAP') ? 'SWAP' : 'SPOT';
+
+            const response = await axios.get(baseUrl + endpoint, {
+                params: {
+                    instType,
+                    instId
+                }
+            });
+
+            if (response.data?.data?.[0]) {
+                const instrument = response.data.data[0] as OkxInstrument;
+                // Calculate decimal places from tickSz (e.g., "0.1" => 1, "0.01" => 2)
+                const precision = -Math.log10(parseFloat(instrument.tickSz));
+                result.set(instId, precision);
+            }
+        }
+
+        priceTickSz = result;
+    } catch (error) {
+        console.error('Error fetching instrument data:', error);
+        throw error;
+    }
 }
 
 function makeAbbrLib(config: { pairs: string[], abbreviation: string }): Map<string, string> {
@@ -241,6 +286,23 @@ async function refreshPrices() {
     }
 }
 
+function formatPrice(priceStr: string, pair: string): string {
+    // 如果无法获取精度信息，返回原始字符串
+    if (!priceTickSz.has(pair)) {
+        return priceStr;
+    }
+
+    // 将字符串转换为数字
+    const price = parseFloat(priceStr);
+    if (isNaN(price)) {
+        return priceStr;
+    }
+    1
+    // 获取精度并格式化
+    const precision = priceTickSz.get(pair)!;
+    return price.toFixed(precision);
+}
+
 function updateStatusBarItem(pair: string) {
     const data = priceData.get(pair);
     const item = statusBarItems.get(pair);
@@ -248,13 +310,13 @@ function updateStatusBarItem(pair: string) {
         return;
     }
 
-    const abbrPair = abbrLib.get(pair)
-    if (abbrPair) {
-        pair = abbrPair;
+    let abbrPair = abbrLib.get(pair)
+    if (!abbrPair) {
+        abbrPair = pair;
     }
 
     const priceStr = data.price;
-    item.text = `${pair}: ${priceStr}`;
+    item.text = `${abbrPair}: ${formatPrice(priceStr, pair)}`;
     item.tooltip = `Last updated: ${new Date(data.timestamp).toLocaleTimeString()}`;
 }
 
